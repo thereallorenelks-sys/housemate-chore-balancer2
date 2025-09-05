@@ -318,36 +318,20 @@ export default function App() {
     return lines.join("\\n");
   }
 
-  
-  function composeEmailFor(personName: string) {
-    const o = peopleObjs.find(x => x.name === personName);
-    const widx = getCurrentWeekIndex();
-    if (!o) return;
-    if (!o.email) {
-      setFlash(`No email on file for ${personName}. Use "Name <email>" in Housemates.`);
-      return;
-    }
-    const subject = `This Week's Chores — Week ${weeks[widx]?.week || (widx+1)}${cycleStart ? ' (' + weekRangeLabel(widx) + ')' : ''}`;
-    const body = buildEmailBody(o.name, widx);
-    const url = `mailto:${encodeURIComponent(o.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(url, '_blank');
-  }
-
-  // Open one draft per person, spaced out to play nice with some email apps
   function composeWeeklyEmails() {
     const widx = getCurrentWeekIndex();
-    const withEmails = peopleObjs.filter(o => !!o.email);
-    const missing = peopleObjs.filter(o => !o.email).map(o => o.name);
-    withEmails.forEach((o, i) => {
+    const missing: string[] = [];
+    for (const o of peopleObjs) {
+      if (!o.email) { missing.push(o.name); continue; }
       const subject = `This Week's Chores — Week ${weeks[widx]?.week || (widx+1)}${cycleStart ? ' (' + weekRangeLabel(widx) + ')' : ''}`;
       const body = buildEmailBody(o.name, widx);
-      const url = `mailto:${encodeURIComponent(o.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      setTimeout(() => window.open(url, '_blank'), i * 700);
-    });
+      const url = `mailto:${encodeURIComponent(o.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body.replace(/\n/g, "\r\n"))}`;
+      window.open(url, '_blank');
+    }
     if (missing.length) {
       setFlash(`No email on file for: ${missing.join(', ')} (add with Name <email> in Housemates)`);
     } else {
-      setFlash('Opened drafts for everyone. If only one opened, allow pop‑ups or click the per-person buttons below.');
+      setFlash('Opened email drafts for all housemates');
     }
   }
 
@@ -495,11 +479,6 @@ export default function App() {
             <div className="flex flex-wrap gap-2">
               <button onClick={composeWeeklyEmails} className="px-3 py-1.5 rounded-xl border bg-slate-50 hover:bg-slate-100">Compose this week's emails</button>
               <button onClick={downloadWeeklyEmailsTxt} className="px-3 py-1.5 rounded-xl border bg-slate-50 hover:bg-slate-100">Download .txt</button>
-            </div>
-            <div className="flex flex-wrap gap-2 text-sm">
-              {people.map(p => (
-                <button key={'one-'+p} onClick={() => composeEmailFor(p)} className="px-2 py-1 rounded-lg border bg-white hover:bg-slate-50">Compose for {p}</button>
-              ))}
             </div>
             {peopleObjs.some(p => !p.email) && (
               <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1">
